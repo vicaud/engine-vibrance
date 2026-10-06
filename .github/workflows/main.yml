@@ -21,6 +21,38 @@ jobs:
           version: 1.3.296.0
           cache: true
 
+      - name: Download libraries
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path C:/dev | Out-Null
+          Set-Location C:/dev
+          git clone --depth 1 https://github.com/g-truc/glm.git glm
+          git clone --depth 1 https://github.com/skypjack/entt.git entt
+          git clone --depth 1 --branch v3.3.0 https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git VulkanMemoryAllocator-3.3.0
+          git clone --depth 1 --branch 12.1.0 https://github.com/fmtlib/fmt.git fmt-12.1.0
+          git clone --depth 1 https://github.com/charles-lunarg/vk-bootstrap.git vk-bootstrap-1.4.341
+          git clone --depth 1 https://github.com/nothings/stb.git stb
+          git clone --depth 1 https://github.com/memononen/nanosvg.git nanosvg
+          git clone --depth 1 https://github.com/simdjson/simdjson.git simdjson
+          Invoke-WebRequest https://github.com/glfw/glfw/releases/download/3.4/glfw-3.4.bin.WIN64.zip -OutFile glfw.zip
+          Expand-Archive glfw.zip -DestinationPath C:/dev
+          Rename-Item C:/dev/glfw-3.4.bin.WIN64 glfw-3.4
+
+      - name: Write .env.cmake
+        shell: pwsh
+        run: |
+          @'
+          set(GLFW_PATH "C:/dev/glfw-3.4")
+          set(GLM_PATH "C:/dev/glm")
+          set(VMA_PATH "C:/dev/VulkanMemoryAllocator-3.3.0")
+          set(FMT_PATH "C:/dev/fmt-12.1.0")
+          set(VKB_PATH "C:/dev/vk-bootstrap-1.4.341")
+          set(ENTT_PATH "C:/dev/entt")
+          set(STB_PATH "C:/dev/stb")
+          set(NANOSVG_PATH "C:/dev/nanosvg")
+          set(SIMDJSON_PATH "C:/dev/simdjson/singleheader")
+          '@ | Set-Content -Path .env.cmake
+
       - name: Configure CMake
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
