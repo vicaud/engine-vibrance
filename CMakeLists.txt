@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(vibranceUI VERSION 1.0.0 LANGUAGES C CXX)
 include(GNUInstallDirs)
+find_package(Vulkan REQUIRED)
 set(ENGINE_SOURCES
     src/animation/lottie.cpp
     src/audio/audio.cpp
