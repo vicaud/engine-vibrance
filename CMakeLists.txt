@@ -22,6 +22,7 @@ set(ENGINE_SOURCES
     src/glfw/ui_surface.cpp
     src/glfw/ui_window.cpp
     src/glfw/window.cpp
+    src/graphics/backdrop.cpp
     src/localisation/localisation.cpp
     src/media/artwork.cpp
     src/media/artwork_view.cpp
