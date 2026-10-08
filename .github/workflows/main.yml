@@ -44,6 +44,21 @@ jobs:
           Copy-Item C:/dev/VulkanMemoryAllocator-3.3.0/include/vk_mem_alloc.h C:/dev/vmainc/vma/vk_mem_alloc.h
           exit 0
 
+      - name: Build FreeType and GLFW (static)
+        shell: pwsh
+        run: |
+          $env:PATH = "C:\mingw64\bin;" + $env:PATH
+          cmake -S C:/dev/freetype-VER-2-14-3 -B C:/dev/freetype-build -G "MinGW Makefiles" "-DCMAKE_BUILD_TYPE=Release" "-DBUILD_SHARED_LIBS=OFF" "-DFT_DISABLE_ZLIB=ON" "-DFT_DISABLE_BZIP2=ON" "-DFT_DISABLE_PNG=ON" "-DFT_DISABLE_HARFBUZZ=ON" "-DFT_DISABLE_BROTLI=ON"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build C:/dev/freetype-build --parallel 4
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake -S C:/dev/glfw-3.4 -B C:/dev/glfw-build -G "MinGW Makefiles" "-DCMAKE_BUILD_TYPE=Release" "-DBUILD_SHARED_LIBS=OFF" "-DGLFW_BUILD_EXAMPLES=OFF" "-DGLFW_BUILD_TESTS=OFF" "-DGLFW_BUILD_DOCS=OFF"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build C:/dev/glfw-build --parallel 4
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem C:/dev/freetype-build -Filter "*.a" -Recurse | Select-Object -ExpandProperty FullName
+          Get-ChildItem C:/dev/glfw-build -Filter "*.a" -Recurse | Select-Object -ExpandProperty FullName
+
       - name: Write .env.cmake
         shell: pwsh
         run: |
@@ -68,7 +83,6 @@ jobs:
           $env:PATH = "C:\mingw64\bin;" + $env:PATH
           $env:CXXFLAGS = "-IC:/dev/simdjson/singleheader -IC:/dev/vmainc -IC:/dev/glm -IC:/dev/entt/src -IC:/dev/stb -IC:/dev/nanosvg/src -IC:/dev/fastgltf-0.9.0/include -IC:/dev/freetype-VER-2-14-3/include -IC:/dev/glfw-3.4/include -IC:/dev/Vulkan-Headers/include"
           $sdk = $env:VULKAN_SDK
-          Write-Host "VULKAN_SDK = $sdk"
           $vkLib = $null
           if (Test-Path "$sdk/Lib/vulkan-1.lib") { $vkLib = "$sdk/Lib/vulkan-1.lib" }
           if (-not $vkLib) {
@@ -76,17 +90,22 @@ jobs:
             if ($found) { $vkLib = $found.FullName }
           }
           if (-not $vkLib -and (Test-Path "C:/Windows/System32/vulkan-1.dll")) { $vkLib = "C:/Windows/System32/vulkan-1.dll" }
-          if (-not $vkLib) { Write-Host "ERREUR: aucune bibliothèque Vulkan trouvée"; Get-ChildItem $sdk -Recurse -ErrorAction SilentlyContinue | Select-Object -First 60 -ExpandProperty FullName; exit 1 }
+          if (-not $vkLib) { Write-Host "ERREUR: aucune bibliotheque Vulkan trouvee"; exit 1 }
           $vkLib = $vkLib -replace '\\','/'
           Write-Host "Vulkan library used: $vkLib"
-          cmake -S . -B build/windows-x64/Release -G "MinGW Makefiles" "-DCMAKE_BUILD_TYPE=Release" "-DVIBRANCE_WINDOWS_ARCHITECTURE=x64" "-DVulkan_INCLUDE_DIR=C:/dev/Vulkan-Headers/include" "-DVulkan_LIBRARY=$vkLib"
+          $ft = (Get-ChildItem C:/dev/freetype-build -Filter "libfreetype*.a" -Recurse | Select-Object -First 1).FullName -replace '\\','/'
+          $gl = (Get-ChildItem C:/dev/glfw-build -Filter "libglfw3.a" -Recurse | Select-Object -First 1).FullName -replace '\\','/'
+          Write-Host "FreeType lib: $ft"
+          Write-Host "GLFW lib: $gl"
+          $stdlibs = "$ft $gl -lgdi32 -lshell32 -lkernel32 -luser32 -lwinspool -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32"
+          cmake -S . -B build/windows-x64/Release -G "MinGW Makefiles" "-DCMAKE_BUILD_TYPE=Release" "-DVIBRANCE_WINDOWS_ARCHITECTURE=x64" "-DVulkan_INCLUDE_DIR=C:/dev/Vulkan-Headers/include" "-DVulkan_LIBRARY=$vkLib" "-DCMAKE_CXX_STANDARD_LIBRARIES=$stdlibs"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build
         shell: pwsh
         run: |
           $env:PATH = "C:\mingw64\bin;" + $env:PATH
-          cmake --build build/windows-x64/Release --config Release
+          cmake --build build/windows-x64/Release --config Release --parallel 4
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload Artifact
