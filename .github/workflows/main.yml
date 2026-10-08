@@ -67,10 +67,18 @@ jobs:
         run: |
           $env:PATH = "C:\mingw64\bin;" + $env:PATH
           $env:CXXFLAGS = "-IC:/dev/simdjson/singleheader -IC:/dev/vmainc -IC:/dev/glm -IC:/dev/entt/src -IC:/dev/stb -IC:/dev/nanosvg/src -IC:/dev/fastgltf-0.9.0/include -IC:/dev/freetype-VER-2-14-3/include -IC:/dev/glfw-3.4/include -IC:/dev/Vulkan-Headers/include"
-          $vkLib = ($env:VULKAN_SDK -replace '\\','/') + "/Lib/vulkan-1.lib"
-          Write-Host "VULKAN_SDK = $env:VULKAN_SDK"
-          Write-Host "vkLib = $vkLib  exists: $(Test-Path $vkLib)"
-          Write-Host "Vulkan headers exist: $(Test-Path C:/dev/Vulkan-Headers/include/vulkan/vulkan.h)"
+          $sdk = $env:VULKAN_SDK
+          Write-Host "VULKAN_SDK = $sdk"
+          $vkLib = $null
+          if (Test-Path "$sdk/Lib/vulkan-1.lib") { $vkLib = "$sdk/Lib/vulkan-1.lib" }
+          if (-not $vkLib) {
+            $found = Get-ChildItem -Path $sdk -Recurse -Include "vulkan-1.lib","vulkan-1.dll","libvulkan-1.dll.a" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($found) { $vkLib = $found.FullName }
+          }
+          if (-not $vkLib -and (Test-Path "C:/Windows/System32/vulkan-1.dll")) { $vkLib = "C:/Windows/System32/vulkan-1.dll" }
+          if (-not $vkLib) { Write-Host "ERREUR: aucune bibliothèque Vulkan trouvée"; Get-ChildItem $sdk -Recurse -ErrorAction SilentlyContinue | Select-Object -First 60 -ExpandProperty FullName; exit 1 }
+          $vkLib = $vkLib -replace '\\','/'
+          Write-Host "Vulkan library used: $vkLib"
           cmake -S . -B build/windows-x64/Release -G "MinGW Makefiles" "-DCMAKE_BUILD_TYPE=Release" "-DVIBRANCE_WINDOWS_ARCHITECTURE=x64" "-DVulkan_INCLUDE_DIR=C:/dev/Vulkan-Headers/include" "-DVulkan_LIBRARY=$vkLib"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
