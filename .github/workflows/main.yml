@@ -45,6 +45,8 @@ jobs:
           Copy-Item C:/dev/simdjson/singleheader/simdjson.cpp C:/dev/singleheader/simdjson.cpp
           Copy-Item C:/dev/simdjson/singleheader/simdjson.h C:/dev/simdjson/simdjson.h -Force
           Copy-Item C:/dev/simdjson/singleheader/simdjson.cpp C:/dev/simdjson/simdjson.cpp -Force
+          New-Item -ItemType Directory -Force -Path C:/dev/vmainc/vma | Out-Null
+          Copy-Item C:/dev/VulkanMemoryAllocator-3.3.0/include/vk_mem_alloc.h C:/dev/vmainc/vma/vk_mem_alloc.h
           exit 0
 
       - name: Write .env.cmake
@@ -69,16 +71,4 @@ jobs:
         shell: cmd
         run: |
           set PATH=C:\mingw64\bin;%PATH%
-          cmake -S . -B build\windows-x64\Release -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DVIBRANCE_WINDOWS_ARCHITECTURE=x64 "-DVulkan_INCLUDE_DIR=C:/dev/Vulkan-Headers/include" "-DVulkan_LIBRARY=%VULKAN_SDK%\Lib\vulkan-1.lib" "-DCMAKE_CXX_FLAGS=-IC:/dev/simdjson/singleheader -IC:/dev/simdjson"
-
-      - name: Build
-        shell: cmd
-        run: |
-          set PATH=C:\mingw64\bin;%PATH%
-          cmake --build build\windows-x64\Release --config Release
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vibranceUI-executable
-          path: build/windows-x64/Release/
+          cmake -S . -B build\windows-x64\Release -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DVIBRANCE_WINDOWS_ARCHITECTURE=x64
