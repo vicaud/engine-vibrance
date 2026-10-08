@@ -38,13 +38,8 @@ jobs:
           git clone --depth 1 https://github.com/memononen/nanosvg.git nanosvg
           git clone --depth 1 --branch v4.6.1 https://github.com/simdjson/simdjson.git simdjson
           New-Item -ItemType Directory -Force -Path C:/dev/simdjson/singleheader | Out-Null
-          New-Item -ItemType Directory -Force -Path C:/dev/singleheader | Out-Null
           Invoke-WebRequest https://github.com/simdjson/simdjson/releases/download/v4.6.1/simdjson.h -OutFile C:/dev/simdjson/singleheader/simdjson.h
           Invoke-WebRequest https://github.com/simdjson/simdjson/releases/download/v4.6.1/simdjson.cpp -OutFile C:/dev/simdjson/singleheader/simdjson.cpp
-          Copy-Item C:/dev/simdjson/singleheader/simdjson.h C:/dev/singleheader/simdjson.h
-          Copy-Item C:/dev/simdjson/singleheader/simdjson.cpp C:/dev/singleheader/simdjson.cpp
-          Copy-Item C:/dev/simdjson/singleheader/simdjson.h C:/dev/simdjson/simdjson.h -Force
-          Copy-Item C:/dev/simdjson/singleheader/simdjson.cpp C:/dev/simdjson/simdjson.cpp -Force
           New-Item -ItemType Directory -Force -Path C:/dev/vmainc/vma | Out-Null
           Copy-Item C:/dev/VulkanMemoryAllocator-3.3.0/include/vk_mem_alloc.h C:/dev/vmainc/vma/vk_mem_alloc.h
           exit 0
@@ -68,7 +63,26 @@ jobs:
           "@ | Set-Content -Path .env.cmake
 
       - name: Configure CMake (MinGW)
-        shell: cmd
+        shell: pwsh
         run: |
-          set PATH=C:\mingw64\bin;%PATH%
-          cmake -S . -B build\windows-x64\Release -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DVIBRANCE_WINDOWS_ARCHITECTURE=x64
+          $env:PATH = "C:\mingw64\bin;" + $env:PATH
+          $env:CXXFLAGS = "-IC:/dev/simdjson/singleheader -IC:/dev/vmainc -IC:/dev/glm -IC:/dev/entt/src -IC:/dev/stb -IC:/dev/nanosvg/src -IC:/dev/fastgltf-0.9.0/include -IC:/dev/freetype-VER-2-14-3/include -IC:/dev/glfw-3.4/include -IC:/dev/Vulkan-Headers/include"
+          $vkLib = ($env:VULKAN_SDK -replace '\\','/') + "/Lib/vulkan-1.lib"
+          Write-Host "VULKAN_SDK = $env:VULKAN_SDK"
+          Write-Host "vkLib = $vkLib  exists: $(Test-Path $vkLib)"
+          Write-Host "Vulkan headers exist: $(Test-Path C:/dev/Vulkan-Headers/include/vulkan/vulkan.h)"
+          cmake -S . -B build/windows-x64/Release -G "MinGW Makefiles" "-DCMAKE_BUILD_TYPE=Release" "-DVIBRANCE_WINDOWS_ARCHITECTURE=x64" "-DVulkan_INCLUDE_DIR=C:/dev/Vulkan-Headers/include" "-DVulkan_LIBRARY=$vkLib"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build
+        shell: pwsh
+        run: |
+          $env:PATH = "C:\mingw64\bin;" + $env:PATH
+          cmake --build build/windows-x64/Release --config Release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vibranceUI-executable
+          path: build/windows-x64/Release/
