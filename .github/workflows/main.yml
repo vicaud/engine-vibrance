@@ -21,6 +21,13 @@ jobs:
           version: 1.4.341.1
           cache: true
 
+      - name: Show Vulkan SDK location
+        shell: pwsh
+        run: |
+          Write-Host "VULKAN_SDK = $env:VULKAN_SDK"
+          Get-ChildItem $env:VULKAN_SDK -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
+          Get-ChildItem "$env:VULKAN_SDK/Lib" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
+
       - name: Download libraries
         shell: pwsh
         run: |
@@ -41,8 +48,10 @@ jobs:
       - name: Write .env.cmake
         shell: pwsh
         run: |
-          @'
+          $vk = $env:VULKAN_SDK -replace '\\','/'
+          @"
           set(MINGW_PATH "C:/mingw64")
+          set(VULKAN_SDK_PATH "$vk")
           set(GLFW_PATH "C:/dev/glfw-3.4")
           set(GLM_PATH "C:/dev/glm")
           set(VMA_PATH "C:/dev/VulkanMemoryAllocator-3.3.0")
@@ -52,13 +61,13 @@ jobs:
           set(FREETYPE_PATH "C:/dev/freetype-VER-2-14-3")
           set(STB_PATH "C:/dev/stb")
           set(NANOSVG_PATH "C:/dev/nanosvg")
-          '@ | Set-Content -Path .env.cmake
+          "@ | Set-Content -Path .env.cmake
 
       - name: Configure CMake (MinGW)
         shell: cmd
         run: |
           set PATH=C:\mingw64\bin;%PATH%
-          cmake -S . -B build\windows-x64\Release -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DVIBRANCE_WINDOWS_ARCHITECTURE=x64
+          cmake -S . -B build\windows-x64\Release -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DVIBRANCE_WINDOWS_ARCHITECTURE=x64 "-DVulkan_INCLUDE_DIR=%VULKAN_SDK%\Include" "-DVulkan_LIBRARY=%VULKAN_SDK%\Lib\vulkan-1.lib"
 
       - name: Build
         shell: cmd
