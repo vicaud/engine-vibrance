@@ -56,8 +56,25 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmake --build C:/dev/glfw-build --parallel 4
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Get-ChildItem C:/dev/freetype-build -Filter "*.a" -Recurse | Select-Object -ExpandProperty FullName
-          Get-ChildItem C:/dev/glfw-build -Filter "*.a" -Recurse | Select-Object -ExpandProperty FullName
+
+      - name: Build simdjson and fastgltf (static)
+        shell: pwsh
+        run: |
+          $env:PATH = "C:\mingw64\bin;" + $env:PATH
+          New-Item -ItemType Directory -Force -Path C:/dev/extra-build | Out-Null
+          Set-Location C:/dev/extra-build
+          $srcs = @("C:/dev/simdjson/singleheader/simdjson.cpp")
+          $srcs += Get-ChildItem C:/dev/fastgltf-0.9.0/src -Filter *.cpp | ForEach-Object { $_.FullName -replace '\\','/' }
+          foreach ($s in $srcs) {
+            $o = [IO.Path]::GetFileNameWithoutExtension($s) + ".o"
+            Write-Host "Compiling $s"
+            g++ -std=c++20 -O2 -c $s -o $o -IC:/dev/simdjson/singleheader -IC:/dev/fastgltf-0.9.0/include
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          $objs = (Get-ChildItem -Filter *.o).Name
+          ar rcs libextra.a $objs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem C:/dev/extra-build | Select-Object -ExpandProperty Name
 
       - name: Write .env.cmake
         shell: pwsh
@@ -95,9 +112,11 @@ jobs:
           Write-Host "Vulkan library used: $vkLib"
           $ft = (Get-ChildItem C:/dev/freetype-build -Filter "libfreetype*.a" -Recurse | Select-Object -First 1).FullName -replace '\\','/'
           $gl = (Get-ChildItem C:/dev/glfw-build -Filter "libglfw3.a" -Recurse | Select-Object -First 1).FullName -replace '\\','/'
+          $ex = "C:/dev/extra-build/libextra.a"
           Write-Host "FreeType lib: $ft"
           Write-Host "GLFW lib: $gl"
-          $stdlibs = "$ft $gl -lgdi32 -lshell32 -lkernel32 -luser32 -lwinspool -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32"
+          Write-Host "simdjson+fastgltf lib: $ex"
+          $stdlibs = "$ex $ft $gl -lgdi32 -lshell32 -lkernel32 -luser32 -lwinspool -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32"
           cmake -S . -B build/windows-x64/Release -G "MinGW Makefiles" "-DCMAKE_BUILD_TYPE=Release" "-DVIBRANCE_WINDOWS_ARCHITECTURE=x64" "-DVulkan_INCLUDE_DIR=C:/dev/Vulkan-Headers/include" "-DVulkan_LIBRARY=$vkLib" "-DCMAKE_CXX_STANDARD_LIBRARIES=$stdlibs"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
