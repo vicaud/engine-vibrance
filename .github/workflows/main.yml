@@ -18,7 +18,7 @@ jobs:
       - name: Install Vulkan SDK
         uses: humbletim/install-vulkan-sdk@v1.2
         with:
-          version: 1.3.296.0
+          version: 1.4.341.1
           cache: true
 
       - name: Download libraries
@@ -27,40 +27,47 @@ jobs:
           New-Item -ItemType Directory -Force -Path C:/dev | Out-Null
           Set-Location C:/dev
           git clone --depth 1 https://github.com/g-truc/glm.git glm
-          git clone --depth 1 https://github.com/skypjack/entt.git entt
+          git clone --depth 1 --branch v3.16.0 https://github.com/skypjack/entt.git entt
           git clone --depth 1 --branch v3.3.0 https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git VulkanMemoryAllocator-3.3.0
-          git clone --depth 1 --branch 12.1.0 https://github.com/fmtlib/fmt.git fmt-12.1.0
-          git clone --depth 1 https://github.com/charles-lunarg/vk-bootstrap.git vk-bootstrap-1.4.341
+          git clone --depth 1 --branch v0.9.0 https://github.com/spnda/fastgltf.git fastgltf-0.9.0
+          git clone --depth 1 --branch VER-2-14-3 https://github.com/freetype/freetype.git freetype-VER-2-14-3
+          git clone --depth 1 --branch 3.4 https://github.com/glfw/glfw.git glfw-3.4
           git clone --depth 1 https://github.com/nothings/stb.git stb
           git clone --depth 1 https://github.com/memononen/nanosvg.git nanosvg
-          git clone --depth 1 https://github.com/simdjson/simdjson.git simdjson
-          Invoke-WebRequest https://github.com/glfw/glfw/releases/download/3.4/glfw-3.4.bin.WIN64.zip -OutFile glfw.zip
-          Expand-Archive glfw.zip -DestinationPath C:/dev
-          Rename-Item C:/dev/glfw-3.4.bin.WIN64 glfw-3.4
+          New-Item -ItemType Directory -Force -Path C:/dev/singleheader | Out-Null
+          Invoke-WebRequest https://github.com/simdjson/simdjson/releases/download/v4.6.1/simdjson.h -OutFile C:/dev/singleheader/simdjson.h
+          Invoke-WebRequest https://github.com/simdjson/simdjson/releases/download/v4.6.1/simdjson.cpp -OutFile C:/dev/singleheader/simdjson.cpp
 
       - name: Write .env.cmake
         shell: pwsh
         run: |
           @'
+          set(MINGW_PATH "C:/mingw64")
           set(GLFW_PATH "C:/dev/glfw-3.4")
           set(GLM_PATH "C:/dev/glm")
           set(VMA_PATH "C:/dev/VulkanMemoryAllocator-3.3.0")
-          set(FMT_PATH "C:/dev/fmt-12.1.0")
-          set(VKB_PATH "C:/dev/vk-bootstrap-1.4.341")
+          set(GLTF_PATH "C:/dev/fastgltf-0.9.0")
+          set(SIMDJSON_PATH "C:/dev/singleheader")
           set(ENTT_PATH "C:/dev/entt")
+          set(FREETYPE_PATH "C:/dev/freetype-VER-2-14-3")
           set(STB_PATH "C:/dev/stb")
           set(NANOSVG_PATH "C:/dev/nanosvg")
-          set(SIMDJSON_PATH "C:/dev/simdjson/singleheader")
           '@ | Set-Content -Path .env.cmake
 
-      - name: Configure CMake
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Configure CMake (MinGW)
+        shell: cmd
+        run: |
+          set PATH=C:\mingw64\bin;%PATH%
+          cmake -S . -B build\windows-x64\Release -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DVIBRANCE_WINDOWS_ARCHITECTURE=x64
 
       - name: Build
-        run: cmake --build build --config Release
+        shell: cmd
+        run: |
+          set PATH=C:\mingw64\bin;%PATH%
+          cmake --build build\windows-x64\Release --config Release
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: vibranceUI-executable
-          path: build/Release/
+          path: build/windows-x64/Release/
