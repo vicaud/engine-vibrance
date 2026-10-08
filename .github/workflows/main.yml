@@ -36,9 +36,15 @@ jobs:
           git clone --depth 1 --branch 3.4 https://github.com/glfw/glfw.git glfw-3.4
           git clone --depth 1 https://github.com/nothings/stb.git stb
           git clone --depth 1 https://github.com/memononen/nanosvg.git nanosvg
+          git clone --depth 1 --branch v4.6.1 https://github.com/simdjson/simdjson.git simdjson
+          New-Item -ItemType Directory -Force -Path C:/dev/simdjson/singleheader | Out-Null
           New-Item -ItemType Directory -Force -Path C:/dev/singleheader | Out-Null
-          Invoke-WebRequest https://github.com/simdjson/simdjson/releases/download/v4.6.1/simdjson.h -OutFile C:/dev/singleheader/simdjson.h
-          Invoke-WebRequest https://github.com/simdjson/simdjson/releases/download/v4.6.1/simdjson.cpp -OutFile C:/dev/singleheader/simdjson.cpp
+          Invoke-WebRequest https://github.com/simdjson/simdjson/releases/download/v4.6.1/simdjson.h -OutFile C:/dev/simdjson/singleheader/simdjson.h
+          Invoke-WebRequest https://github.com/simdjson/simdjson/releases/download/v4.6.1/simdjson.cpp -OutFile C:/dev/simdjson/singleheader/simdjson.cpp
+          Copy-Item C:/dev/simdjson/singleheader/simdjson.h C:/dev/singleheader/simdjson.h
+          Copy-Item C:/dev/simdjson/singleheader/simdjson.cpp C:/dev/singleheader/simdjson.cpp
+          Copy-Item C:/dev/simdjson/singleheader/simdjson.h C:/dev/simdjson/simdjson.h -Force
+          Copy-Item C:/dev/simdjson/singleheader/simdjson.cpp C:/dev/simdjson/simdjson.cpp -Force
           exit 0
 
       - name: Write .env.cmake
@@ -52,7 +58,7 @@ jobs:
           set(GLM_PATH "C:/dev/glm")
           set(VMA_PATH "C:/dev/VulkanMemoryAllocator-3.3.0")
           set(GLTF_PATH "C:/dev/fastgltf-0.9.0")
-          set(SIMDJSON_PATH "C:/dev/singleheader")
+          set(SIMDJSON_PATH "C:/dev/simdjson")
           set(ENTT_PATH "C:/dev/entt")
           set(FREETYPE_PATH "C:/dev/freetype-VER-2-14-3")
           set(STB_PATH "C:/dev/stb")
