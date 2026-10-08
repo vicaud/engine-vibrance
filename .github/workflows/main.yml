@@ -58,7 +58,7 @@ jobs:
           set(GLM_PATH "C:/dev/glm")
           set(VMA_PATH "C:/dev/VulkanMemoryAllocator-3.3.0")
           set(GLTF_PATH "C:/dev/fastgltf-0.9.0")
-          set(SIMDJSON_PATH "C:/dev/simdjson")
+          set(SIMDJSON_PATH "C:/dev/simdjson/singleheader")
           set(ENTT_PATH "C:/dev/entt")
           set(FREETYPE_PATH "C:/dev/freetype-VER-2-14-3")
           set(STB_PATH "C:/dev/stb")
@@ -69,7 +69,7 @@ jobs:
         shell: cmd
         run: |
           set PATH=C:\mingw64\bin;%PATH%
-          cmake -S . -B build\windows-x64\Release -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DVIBRANCE_WINDOWS_ARCHITECTURE=x64 "-DVulkan_INCLUDE_DIR=C:/dev/Vulkan-Headers/include" "-DVulkan_LIBRARY=%VULKAN_SDK%\Lib\vulkan-1.lib"
+          cmake -S . -B build\windows-x64\Release -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DVIBRANCE_WINDOWS_ARCHITECTURE=x64 "-DVulkan_INCLUDE_DIR=C:/dev/Vulkan-Headers/include" "-DVulkan_LIBRARY=%VULKAN_SDK%\Lib\vulkan-1.lib" "-DCMAKE_CXX_FLAGS=-IC:/dev/simdjson/singleheader -IC:/dev/simdjson"
 
       - name: Build
         shell: cmd
